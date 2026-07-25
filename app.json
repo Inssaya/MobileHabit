@@ -1,0 +1,75 @@
+{
+  "expo": {
+    "name": "Stop This Habit",
+    "slug": "MobileHabit",
+    "scheme": "stopthishabit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#060B18",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.stopthishabit.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "نحتاج إلى الميكروفون لتسجيل ملاحظاتك الصوتية الخاصة.",
+        "NSCameraUsageDescription": "نحتاج إلى الكاميرا لالتقاط صور وفيديوهات خاصة بك.",
+        "NSPhotoLibraryUsageDescription": "نحتاج إلى الوصول للمعرض لحفظ واختيار الصور والفيديوهات الخاصة بك.",
+        "NSPhotoLibraryAddUsageDescription": "نحتاج إلى إذن لحفظ الصور والفيديوهات في معرضك."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#060B18",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.stopthishabit.app",
+      "permissions": [
+        "RECORD_AUDIO",
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-system-ui",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#060B18",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 140
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "نحتاج إلى الوصول للمعرض لاختيار الصور والفيديوهات الخاصة بك.",
+          "cameraPermission": "نحتاج إلى الكاميرا لالتقاط صور وفيديوهات خاصة بك.",
+          "microphonePermission": "نحتاج إلى الميكروفون لتسجيل الفيديو بصوت."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "نحتاج إلى الميكروفون لتسجيل ملاحظاتك الصوتية الخاصة."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
