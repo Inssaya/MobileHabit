@@ -8,9 +8,24 @@ export interface Habit {
   icon: string;
   rawDescription: string;
   createdAt: number;
+  /** User's own stated reasons for quitting, resurfaced back to them mid-urge. */
+  reasons: string[];
 }
 
 export type UrgeOutcome = 'ongoing' | 'resisted' | 'relapsed';
+
+/** HALT-style quick-tap triggers so logging works without typing. */
+export type TriggerKey =
+  | 'hungry'
+  | 'angry'
+  | 'lonely'
+  | 'tired'
+  | 'bored'
+  | 'stressed'
+  | 'aroused'
+  | 'anxious'
+  | 'idle'
+  | 'sad';
 
 export interface UrgeRecord {
   id: string;
@@ -20,6 +35,20 @@ export interface UrgeRecord {
   feeling: string;
   why: string;
   outcome: UrgeOutcome;
+  triggers: TriggerKey[];
+  /** 1-10 self-reported craving strength, null if never set. */
+  intensity: number | null;
+}
+
+export type Mood = 'great' | 'good' | 'okay' | 'low' | 'bad';
+
+export interface CheckIn {
+  id: string;
+  at: number;
+  /** Local YYYY-MM-DD, used to enforce one check-in per day. */
+  day: string;
+  mood: Mood;
+  note: string;
 }
 
 export type ChatRole = 'user' | 'ai';
@@ -69,6 +98,15 @@ export interface VaultState {
   videos: VaultVideo[];
 }
 
+export interface NotificationPrefs {
+  enabled: boolean;
+  dailyCheckIn: boolean;
+  /** Hour of day (0-23) for the daily check-in reminder. */
+  dailyCheckInHour: number;
+  milestones: boolean;
+  riskyHours: boolean;
+}
+
 export interface AppState {
   hasHydrated: boolean;
   onboarded: boolean;
@@ -77,6 +115,7 @@ export interface AppState {
   habit: Habit | null;
 
   streakStartedAt: number | null;
+  journeyStartedAt: number | null;
   lifetimeCleanDaysBanked: number;
   bestStreakDays: number;
   resistedCount: number;
@@ -85,7 +124,16 @@ export interface AppState {
   urges: UrgeRecord[];
   activeUrgeId: string | null;
 
+  checkIns: CheckIn[];
+
+  /** Milestone keys the user has already unlocked (see lib/milestones.ts). */
+  unlockedMilestones: string[];
+  /** Milestones unlocked but not yet shown in the celebration screen. */
+  pendingMilestones: string[];
+
   chatMessages: ChatMessage[];
 
   vault: VaultState;
+
+  notifications: NotificationPrefs;
 }

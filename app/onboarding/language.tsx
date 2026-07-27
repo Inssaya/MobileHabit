@@ -25,7 +25,7 @@ export default function LanguageScreen() {
   return (
     <Screen style={styles.screen}>
       <View style={styles.top}>
-        <StepDots total={4} current={0} />
+        <StepDots total={5} current={0} />
         <Text style={[styles.title, { color: theme.text }]}>{t('langTitle')}</Text>
         <Text style={[styles.sub, { color: theme.textDim }]}>{t('langSub')}</Text>
       </View>

@@ -1,30 +1,40 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Chronometer, { useElapsed } from '../../components/Chronometer';
 import RankBadge from '../../components/RankBadge';
+import MoodPicker from '../../components/MoodPicker';
+import MilestoneModal from '../../components/MilestoneModal';
 import { PrimaryButton } from '../../components/Buttons';
 import { useAppStore } from '../../lib/store';
 import { useTheme, useT, useLang } from '../../lib/hooks';
 import { Fonts } from '../../lib/fonts';
 import { rankForDays, nextRank, rankProgress } from '../../lib/ranks';
+import { todayKey } from '../../lib/dates';
+import type { Mood } from '../../lib/types';
 
 export default function HomeScreen() {
   const theme = useTheme();
   const lang = useLang();
   const t = useT('home');
   const tc = useT('common');
+  const tCheck = useT('checkin');
 
   const habit = useAppStore((s) => s.habit);
   const streakStartedAt = useAppStore((s) => s.streakStartedAt);
   const bestStreakDays = useAppStore((s) => s.bestStreakDays);
   const lifetimeCleanDaysBanked = useAppStore((s) => s.lifetimeCleanDaysBanked);
   const resistedCount = useAppStore((s) => s.resistedCount);
-  const relapseCount = useAppStore((s) => s.relapseCount);
+  const checkIns = useAppStore((s) => s.checkIns);
+  const pendingMilestones = useAppStore((s) => s.pendingMilestones);
   const startUrge = useAppStore((s) => s.startUrge);
+  const addCheckIn = useAppStore((s) => s.addCheckIn);
+  const evaluateMilestones = useAppStore((s) => s.evaluateMilestones);
+  const consumePendingMilestones = useAppStore((s) => s.consumePendingMilestones);
 
   const { totalMs } = useElapsed(streakStartedAt);
   const days = totalMs / 86400000;
@@ -34,12 +44,41 @@ export default function HomeScreen() {
   const daysToNext = next ? Math.max(0, next.minDays - days) : 0;
   const totalScore = Math.round((lifetimeCleanDaysBanked + days) * 10) + resistedCount * 15;
 
+  const [mood, setMood] = useState<Mood | null>(null);
+  const [note, setNote] = useState('');
+  const [celebrating, setCelebrating] = useState<string[]>([]);
+
+  // Must use the same local-date key the store writes, or the check-in card
+  // reappears (or wrongly hides) for hours around midnight in any non-UTC zone.
+  const checkedInToday = checkIns.some((c) => c.day === todayKey());
+
+  // Streak-based milestones become true with the passage of time alone, so
+  // they need a check on mount rather than only after an explicit action.
+  useEffect(() => {
+    evaluateMilestones();
+  }, [evaluateMilestones]);
+
+  useEffect(() => {
+    if (pendingMilestones.length > 0 && celebrating.length === 0) {
+      setCelebrating(consumePendingMilestones());
+    }
+  }, [pendingMilestones, celebrating.length, consumePendingMilestones]);
+
   const hour = new Date().getHours();
   const greeting = hour < 17 ? t('greetingMorning') : t('greetingEvening');
 
   const onUrge = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
     startUrge();
     router.push('/urge');
+  };
+
+  const submitCheckIn = () => {
+    if (!mood) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    addCheckIn(mood, note);
+    setMood(null);
+    setNote('');
   };
 
   return (
@@ -74,7 +113,7 @@ export default function HomeScreen() {
                 </Text>
               </>
             ) : (
-              <Text style={[styles.progressLabel, { color: theme.accent }]}>⭐ {lang === 'ar' ? 'أعلى رتبة' : 'Top rank reached'}</Text>
+              <Text style={[styles.progressLabel, { color: theme.accent }]}>⭐ {t('topRank')}</Text>
             )}
           </View>
         </Card>
@@ -82,12 +121,54 @@ export default function HomeScreen() {
         <PrimaryButton label={t('urgeButton')} onPress={onUrge} style={styles.urgeBtn} icon="⚡" />
         <Text style={[styles.urgeSub, { color: theme.textFaint }]}>{t('urgeButtonSub')}</Text>
 
+        {/* Daily check-in, hidden once done so home doesn't nag. */}
+        {checkedInToday ? (
+          <Card style={styles.checkedInCard}>
+            <Text style={[styles.checkedIn, { color: theme.success }]}>{t('checkInDone')}</Text>
+          </Card>
+        ) : (
+          <Card style={{ gap: 14 }}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 0 }]}>{tCheck('title')}</Text>
+              <Text style={[styles.checkSub, { color: theme.textDim }]}>{tCheck('sub')}</Text>
+            </View>
+            <MoodPicker value={mood} onChange={setMood} />
+            {mood ? (
+              <>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder={tCheck('notePlaceholder')}
+                  placeholderTextColor={theme.textFaint}
+                  multiline
+                  textAlign={lang === 'ar' ? 'right' : 'left'}
+                  style={[styles.noteInput, { color: theme.text, borderColor: theme.border }]}
+                />
+                <PrimaryButton label={tc('save')} onPress={submitCheckIn} />
+              </>
+            ) : null}
+          </Card>
+        )}
+
+        {habit && habit.reasons.length > 0 ? (
+          <Card style={{ gap: 8 }}>
+            <Text style={[styles.whyTitle, { color: theme.accent }]}>{t('yourWhy')}</Text>
+            {habit.reasons.slice(0, 2).map((reason, i) => (
+              <Text key={i} style={[styles.whyReason, { color: theme.textDim }]}>
+                ❝ {reason}
+              </Text>
+            ))}
+          </Card>
+        ) : null}
+
         <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('quickStats')}</Text>
         <View style={styles.statsRow}>
-          <Card style={styles.statCard}>
-            <Text style={[styles.statValue, { color: theme.primary }]}>{resistedCount}</Text>
-            <Text style={[styles.statLabel, { color: theme.textDim }]}>{t('urgesResisted')}</Text>
-          </Card>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.8} onPress={() => router.push('/(tabs)/journey')}>
+            <Card style={styles.statCard}>
+              <Text style={[styles.statValue, { color: theme.primary }]}>{resistedCount}</Text>
+              <Text style={[styles.statLabel, { color: theme.textDim }]}>{t('urgesResisted')}</Text>
+            </Card>
+          </TouchableOpacity>
           <Card style={styles.statCard}>
             <Text style={[styles.statValue, { color: theme.text }]}>{Math.floor(bestStreakDays)}</Text>
             <Text style={[styles.statLabel, { color: theme.textDim }]}>{t('bestStreak')}</Text>
@@ -98,6 +179,11 @@ export default function HomeScreen() {
           </Card>
         </View>
       </ScrollView>
+
+      <MilestoneModal
+        milestoneKey={celebrating[0] ?? null}
+        onClose={() => setCelebrating((prev) => prev.slice(1))}
+      />
     </Screen>
   );
 }
@@ -117,6 +203,19 @@ const styles = StyleSheet.create({
   progressLabel: { fontFamily: Fonts.body, fontSize: 11, marginTop: 6 },
   urgeBtn: { marginTop: 4 },
   urgeSub: { textAlign: 'center', fontFamily: Fonts.body, fontSize: 12, marginTop: -8 },
+  checkedInCard: { alignItems: 'center', paddingVertical: 14 },
+  checkedIn: { fontFamily: Fonts.medium, fontSize: 13 },
+  checkSub: { fontFamily: Fonts.body, fontSize: 12, marginTop: 3, lineHeight: 18 },
+  noteInput: {
+    minHeight: 60,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    padding: 12,
+    fontFamily: Fonts.body,
+    fontSize: 13.5,
+  },
+  whyTitle: { fontFamily: Fonts.bold, fontSize: 13 },
+  whyReason: { fontFamily: Fonts.body, fontSize: 13, lineHeight: 20 },
   sectionTitle: { fontFamily: Fonts.bold, fontSize: 16, marginTop: 10 },
   statsRow: { flexDirection: 'row', gap: 12 },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: 18, gap: 4 },

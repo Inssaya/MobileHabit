@@ -53,6 +53,7 @@ export default function ChatScreen() {
   const resistedCount = useAppStore((s) => s.resistedCount);
   const relapseCount = useAppStore((s) => s.relapseCount);
   const urges = useAppStore((s) => s.urges);
+  const checkIns = useAppStore((s) => s.checkIns);
   const activeUrgeId = useAppStore((s) => s.activeUrgeId);
 
   // Computed here (plain JS, not inside a selector) so the zustand snapshot
@@ -63,7 +64,7 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const listRef = useRef<FlatList>(null);
 
-  const ctx = { lang, habit, currentStreakDays, bestStreakDays, totalScore, resistedCount, relapseCount, urges };
+  const ctx = { lang, habit, currentStreakDays, bestStreakDays, totalScore, resistedCount, relapseCount, urges, checkIns };
 
   const scrollToEnd = () => setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
 

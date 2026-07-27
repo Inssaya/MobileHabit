@@ -48,15 +48,16 @@ export default function HabitScreen() {
       icon,
       rawDescription: text.trim(),
       createdAt: Date.now(),
+      reasons: [],
     });
-    router.push('/onboarding/pin');
+    router.push('/onboarding/reasons');
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Screen style={styles.screen}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <StepDots total={4} current={2} />
+          <StepDots total={5} current={2} />
           <Text style={[styles.title, { color: theme.text }]}>{t('habitTitle')}</Text>
           <Text style={[styles.sub, { color: theme.textDim }]}>{t('habitSub')}</Text>
 

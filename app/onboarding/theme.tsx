@@ -22,7 +22,7 @@ export default function ThemeScreen() {
   return (
     <Screen style={styles.screen}>
       <View style={styles.top}>
-        <StepDots total={4} current={1} />
+        <StepDots total={5} current={1} />
         <Text style={[styles.title, { color: theme.text }]}>{t('themeTitle')}</Text>
         <Text style={[styles.sub, { color: theme.textDim }]}>{t('themeSub')}</Text>
       </View>

@@ -50,7 +50,7 @@ export default function PinScreen() {
   return (
     <Screen style={styles.screen}>
       <View style={styles.top}>
-        <StepDots total={4} current={3} />
+        <StepDots total={5} current={4} />
         <Text style={[styles.title, { color: theme.text }]}>{stage === 'create' ? t('pinTitle') : t('pinConfirmTitle')}</Text>
         <Text style={[styles.sub, { color: theme.textDim }]}>{stage === 'create' ? t('pinSub') : error ? t('pinMismatch') : ' '}</Text>
       </View>

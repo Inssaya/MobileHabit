@@ -12,9 +12,9 @@ export interface Rank {
 
 export const RANKS: Rank[] = [
   {
-    key: 'faashil',
-    nameAr: 'فاشل',
-    nameEn: 'The Fallen',
+    key: 'bidaya',
+    nameAr: 'البداية',
+    nameEn: 'The Beginning',
     minDays: 0,
     icon: '🌑',
     colorFrom: '#5C6890',
