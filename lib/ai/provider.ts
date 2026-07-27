@@ -29,7 +29,7 @@ export interface ProviderReply {
 }
 
 export interface AIProvider {
-  readonly id: 'anthropic' | 'offline';
+  readonly id: 'anthropic' | 'openai' | 'offline';
   /**
    * `toolHint` names tools the caller already knows are relevant (a quick-reply
    * chip, for instance). The offline provider uses it instead of guessing from

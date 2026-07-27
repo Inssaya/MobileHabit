@@ -45,3 +45,21 @@ export function maskApiKey(key: string): string {
 export function looksLikeAnthropicKey(key: string): boolean {
   return /^sk-ant-/.test(key.trim());
 }
+
+export type KeyKind = 'anthropic' | 'openrouter' | 'openai' | 'unknown';
+
+/**
+ * The key's prefix alone tells us which provider it belongs to and which
+ * endpoint to call — no separate "which provider" setting to keep in sync.
+ */
+export function detectKeyKind(key: string): KeyKind {
+  const k = key.trim();
+  if (/^sk-ant-/.test(k)) return 'anthropic';
+  if (/^sk-or-/.test(k)) return 'openrouter';
+  if (/^sk-/.test(k)) return 'openai';
+  return 'unknown';
+}
+
+export function looksLikeSupportedKey(key: string): boolean {
+  return detectKeyKind(key) !== 'unknown';
+}

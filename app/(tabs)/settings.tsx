@@ -17,8 +17,7 @@ import { hashPin } from '../../lib/pin';
 import { CRISIS_NOTE } from '../../lib/coping';
 import { exportToFile, pickBackupFile } from '../../lib/backup';
 import { rescheduleAll } from '../../lib/notifications';
-import { clearApiKey, getApiKey, looksLikeAnthropicKey, maskApiKey, setApiKey } from '../../lib/apiKey';
-import { AI_MODEL } from '../../lib/ai/provider';
+import { clearApiKey, detectKeyKind, getApiKey, looksLikeSupportedKey, maskApiKey, setApiKey } from '../../lib/apiKey';
 import type { Lang } from '../../lib/i18n';
 
 export default function SettingsScreen() {
@@ -252,16 +251,21 @@ export default function SettingsScreen() {
 
           <Text style={{ color: theme.textFaint, fontFamily: Fonts.body, fontSize: 11.5, lineHeight: 17 }}>
             {lang === 'ar'
-              ? `يُحفظ المفتاح في خزنة جهازك المشفّرة فقط، ولا يُرسل إلى أي خادم غير Anthropic. النموذج المستخدم: ${AI_MODEL}`
-              : `Your key is stored only in your device's secure keychain and is never sent anywhere except Anthropic. Model: ${AI_MODEL}`}
+              ? 'يُحفظ المفتاح في خزنة جهازك المشفّرة فقط، ويُرسل فقط إلى الخدمة التي يخصّها (Anthropic أو OpenAI أو OpenRouter، حسب نوع المفتاح).'
+              : "Your key is stored only in your device's secure keychain and is sent only to the service it belongs to (Anthropic, OpenAI, or OpenRouter, based on the key's format)."}
           </Text>
+          {storedKey ? (
+            <Text style={{ color: theme.textFaint, fontFamily: Fonts.body, fontSize: 11 }}>
+              {(lang === 'ar' ? 'الخدمة: ' : 'Service: ') + serviceLabel(detectKeyKind(storedKey))}
+            </Text>
+          ) : null}
 
           {editingKey || !storedKey ? (
             <>
               <TextInput
                 value={keyDraft}
                 onChangeText={setKeyDraft}
-                placeholder="sk-ant-..."
+                placeholder="sk-ant-... / sk-... / sk-or-..."
                 placeholderTextColor={theme.textFaint}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -269,11 +273,11 @@ export default function SettingsScreen() {
                 textAlign="left"
                 style={[styles.input, { color: theme.text, borderColor: theme.border }]}
               />
-              {keyDraft.trim().length > 0 && !looksLikeAnthropicKey(keyDraft) ? (
+              {keyDraft.trim().length > 0 && !looksLikeSupportedKey(keyDraft) ? (
                 <Text style={{ color: theme.warning, fontFamily: Fonts.body, fontSize: 11 }}>
                   {lang === 'ar'
-                    ? 'المفاتيح عادة تبدأ بـ sk-ant- — تأكد من صحته.'
-                    : 'Keys usually start with sk-ant- — double-check this one.'}
+                    ? 'لم أتعرّف على تنسيق هذا المفتاح — تأكد من نسخه كاملاً.'
+                    : "This key's format isn't recognized — make sure it's copied in full."}
                 </Text>
               ) : null}
               <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -477,6 +481,19 @@ export default function SettingsScreen() {
       </Modal>
     </Screen>
   );
+}
+
+function serviceLabel(kind: ReturnType<typeof detectKeyKind>): string {
+  switch (kind) {
+    case 'anthropic':
+      return 'Anthropic (Claude)';
+    case 'openai':
+      return 'OpenAI';
+    case 'openrouter':
+      return 'OpenRouter';
+    default:
+      return 'Unknown';
+  }
 }
 
 function ToggleRow({

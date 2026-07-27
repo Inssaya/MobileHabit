@@ -21,10 +21,11 @@ import BreathingOrb from '../../components/BreathingOrb';
 import { useAppStore } from '../../lib/store';
 import { useLang, useT, useTheme } from '../../lib/hooks';
 import { Fonts } from '../../lib/fonts';
-import { getApiKey } from '../../lib/apiKey';
+import { detectKeyKind, getApiKey } from '../../lib/apiKey';
 import { runAgent } from '../../lib/ai/agent';
 import { AnthropicProvider, type AgentTurn, type AIProvider } from '../../lib/ai/provider';
 import { OfflineProvider } from '../../lib/ai/offlineProvider';
+import { OpenAIProvider } from '../../lib/ai/openaiProvider';
 import { toolDisplayName } from '../../lib/ai/toolDefs';
 import type { ChatMessage } from '../../lib/types';
 
@@ -76,7 +77,20 @@ export default function ChatScreen() {
   const buildProvider = useCallback(async (): Promise<AIProvider> => {
     const key = await getApiKey();
     setHasKey(!!key);
-    return key ? new AnthropicProvider(key) : new OfflineProvider(lang);
+    if (!key) return new OfflineProvider(lang);
+
+    // The key's own prefix says which service it belongs to — OpenRouter
+    // speaks the identical OpenAI wire format, just at its own base URL.
+    switch (detectKeyKind(key)) {
+      case 'anthropic':
+        return new AnthropicProvider(key);
+      case 'openrouter':
+        return new OpenAIProvider(key, 'https://openrouter.ai/api/v1', 'openai/gpt-4o-mini');
+      case 'openai':
+        return new OpenAIProvider(key, 'https://api.openai.com/v1', 'gpt-4o-mini');
+      default:
+        return new OfflineProvider(lang);
+    }
   }, [lang]);
 
   const send = useCallback(
