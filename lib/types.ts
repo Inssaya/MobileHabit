@@ -60,6 +60,10 @@ export interface ChatMessage {
   at: number;
   urgeId?: string;
   tool?: string;
+  /** Human-readable labels for the tools the assistant ran to produce this reply. */
+  steps?: string[];
+  /** UI the reply asked us to render (breathing orb, fight-mode prompt). */
+  uiAction?: 'breathing' | 'open_urge_screen' | 'verse';
 }
 
 export interface VaultMusic {

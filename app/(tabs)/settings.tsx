@@ -17,6 +17,8 @@ import { hashPin } from '../../lib/pin';
 import { CRISIS_NOTE } from '../../lib/coping';
 import { exportToFile, pickBackupFile } from '../../lib/backup';
 import { rescheduleAll } from '../../lib/notifications';
+import { clearApiKey, getApiKey, looksLikeAnthropicKey, maskApiKey, setApiKey } from '../../lib/apiKey';
+import { AI_MODEL } from '../../lib/ai/provider';
 import type { Lang } from '../../lib/i18n';
 
 export default function SettingsScreen() {
@@ -51,6 +53,10 @@ export default function SettingsScreen() {
   const [pinStage, setPinStage] = useState<'create' | 'confirm'>('create');
   const [pinError, setPinError] = useState(false);
 
+  const [storedKey, setStoredKey] = useState<string | null>(null);
+  const [keyDraft, setKeyDraft] = useState('');
+  const [editingKey, setEditingKey] = useState(false);
+
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmImport, setConfirmImport] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -60,6 +66,10 @@ export default function SettingsScreen() {
     setToast(msg);
     setTimeout(() => setToast(null), 2600);
   };
+
+  useEffect(() => {
+    getApiKey().then(setStoredKey);
+  }, []);
 
   useEffect(() => {
     if (pinStage === 'create' && newPin.length === 4) {
@@ -118,6 +128,24 @@ export default function SettingsScreen() {
     const result = importSnapshot(confirmImport);
     setConfirmImport(null);
     flash(result.ok ? t('importSuccess') : t('importFailed'));
+  };
+
+  const saveKey = async () => {
+    const trimmed = keyDraft.trim();
+    if (!trimmed) return;
+    await setApiKey(trimmed);
+    setStoredKey(trimmed);
+    setKeyDraft('');
+    setEditingKey(false);
+    flash(lang === 'ar' ? 'تم حفظ المفتاح' : 'API key saved');
+  };
+
+  const removeKey = async () => {
+    await clearApiKey();
+    setStoredKey(null);
+    setKeyDraft('');
+    setEditingKey(false);
+    flash(lang === 'ar' ? 'تم حذف المفتاح' : 'API key removed');
   };
 
   const doReset = () => {
@@ -193,6 +221,79 @@ export default function SettingsScreen() {
         <Text style={[styles.section, { color: theme.textDim }]}>{t('reasons')}</Text>
         <Card>
           <ReasonsEditor reasons={habit?.reasons ?? []} onAdd={addReason} onRemove={removeReason} />
+        </Card>
+
+        <Text style={[styles.section, { color: theme.textDim }]}>
+          {lang === 'ar' ? 'المساعد الذكي' : 'AI Assistant'}
+        </Text>
+        <Card style={{ gap: 12 }}>
+          <View style={styles.row}>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: storedKey ? theme.success : theme.textFaint },
+              ]}
+            />
+            <Text style={{ flex: 1, color: theme.text, fontFamily: Fonts.medium, fontSize: 13.5 }}>
+              {storedKey
+                ? lang === 'ar'
+                  ? 'مُفعّل بالكامل'
+                  : 'Fully enabled'
+                : lang === 'ar'
+                  ? 'وضع محدود (بدون مفتاح)'
+                  : 'Limited mode (no key)'}
+            </Text>
+            {storedKey && !editingKey ? (
+              <Text style={{ color: theme.textFaint, fontFamily: Fonts.body, fontSize: 11 }}>
+                {maskApiKey(storedKey)}
+              </Text>
+            ) : null}
+          </View>
+
+          <Text style={{ color: theme.textFaint, fontFamily: Fonts.body, fontSize: 11.5, lineHeight: 17 }}>
+            {lang === 'ar'
+              ? `يُحفظ المفتاح في خزنة جهازك المشفّرة فقط، ولا يُرسل إلى أي خادم غير Anthropic. النموذج المستخدم: ${AI_MODEL}`
+              : `Your key is stored only in your device's secure keychain and is never sent anywhere except Anthropic. Model: ${AI_MODEL}`}
+          </Text>
+
+          {editingKey || !storedKey ? (
+            <>
+              <TextInput
+                value={keyDraft}
+                onChangeText={setKeyDraft}
+                placeholder="sk-ant-..."
+                placeholderTextColor={theme.textFaint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+                textAlign="left"
+                style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              />
+              {keyDraft.trim().length > 0 && !looksLikeAnthropicKey(keyDraft) ? (
+                <Text style={{ color: theme.warning, fontFamily: Fonts.body, fontSize: 11 }}>
+                  {lang === 'ar'
+                    ? 'المفاتيح عادة تبدأ بـ sk-ant- — تأكد من صحته.'
+                    : 'Keys usually start with sk-ant- — double-check this one.'}
+                </Text>
+              ) : null}
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <PrimaryButton
+                  label={tc('save')}
+                  onPress={saveKey}
+                  disabled={!keyDraft.trim()}
+                  style={{ flex: 1 }}
+                />
+                {storedKey ? (
+                  <GhostButton label={tc('cancel')} onPress={() => { setEditingKey(false); setKeyDraft(''); }} />
+                ) : null}
+              </View>
+            </>
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <GhostButton label={tc('edit')} onPress={() => setEditingKey(true)} style={{ flex: 1 }} />
+              <GhostButton label={tc('delete')} danger onPress={removeKey} style={{ flex: 1 }} />
+            </View>
+          )}
         </Card>
 
         <Text style={[styles.section, { color: theme.textDim }]}>{t('notifications')}</Text>
@@ -424,6 +525,7 @@ const styles = StyleSheet.create({
   langBtn: { flex: 1, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
   themeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16 },
   swatch: { width: 16, height: 16, borderRadius: 8 },
+  statusDot: { width: 9, height: 9, borderRadius: 5 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   hourRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
   hourPicker: { flexDirection: 'row', alignItems: 'center', gap: 10 },
