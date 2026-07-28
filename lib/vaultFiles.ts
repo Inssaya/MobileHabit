@@ -39,3 +39,30 @@ export async function persistVaultFile(sourceUri: string, subfolder: string, nam
     return sourceUri;
   }
 }
+
+/**
+ * Removing a vault item from the store must also remove the file it points
+ * to — otherwise every "delete" the user makes is cosmetic: the photo/clip
+ * they just told the app to erase keeps sitting in the document directory
+ * forever, which defeats the point of a *private* vault.
+ */
+export function deleteVaultFile(uri: string): void {
+  if (Platform.OS === 'web') return;
+  try {
+    const file = new File(uri);
+    if (file.exists) file.delete();
+  } catch {
+    // A stale or already-gone reference isn't worth surfacing to the user.
+  }
+}
+
+/** Wipes every persisted vault file at once, for a full data reset. */
+export function wipeVaultDirectory(): void {
+  if (Platform.OS === 'web') return;
+  try {
+    const dir = new Directory(Paths.document, 'vault');
+    if (dir.exists) dir.delete();
+  } catch {
+    // Best-effort — nothing to clean up is not an error.
+  }
+}

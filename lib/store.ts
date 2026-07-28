@@ -23,6 +23,7 @@ import { uid } from './uid';
 import { computeCurrentStreakDays, computeTotalCleanDays, computeTotalScore } from './derived';
 import { milestoneInputFromState, newlyEarned } from './milestones';
 import { todayKey } from './dates';
+import { deleteVaultFile, wipeVaultDirectory } from './vaultFiles';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -306,28 +307,44 @@ export const useAppStore = create<AppState & AppActions>()(
           vault: { ...s.vault, music: [{ ...item, id: uid(), addedAt: Date.now() }, ...s.vault.music] },
         })),
       removeVaultMusic: (id) =>
-        set((s) => ({ vault: { ...s.vault, music: s.vault.music.filter((m) => m.id !== id) } })),
+        set((s) => {
+          const item = s.vault.music.find((m) => m.id === id);
+          if (item) deleteVaultFile(item.uri);
+          return { vault: { ...s.vault, music: s.vault.music.filter((m) => m.id !== id) } };
+        }),
 
       addVaultPhoto: (item) =>
         set((s) => ({
           vault: { ...s.vault, photos: [{ ...item, id: uid(), addedAt: Date.now() }, ...s.vault.photos] },
         })),
       removeVaultPhoto: (id) =>
-        set((s) => ({ vault: { ...s.vault, photos: s.vault.photos.filter((p) => p.id !== id) } })),
+        set((s) => {
+          const item = s.vault.photos.find((p) => p.id === id);
+          if (item) deleteVaultFile(item.uri);
+          return { vault: { ...s.vault, photos: s.vault.photos.filter((p) => p.id !== id) } };
+        }),
 
       addVaultVoice: (item) =>
         set((s) => ({
           vault: { ...s.vault, voice: [{ ...item, id: uid(), addedAt: Date.now() }, ...s.vault.voice] },
         })),
       removeVaultVoice: (id) =>
-        set((s) => ({ vault: { ...s.vault, voice: s.vault.voice.filter((v) => v.id !== id) } })),
+        set((s) => {
+          const item = s.vault.voice.find((v) => v.id === id);
+          if (item) deleteVaultFile(item.uri);
+          return { vault: { ...s.vault, voice: s.vault.voice.filter((v) => v.id !== id) } };
+        }),
 
       addVaultVideo: (item) =>
         set((s) => ({
           vault: { ...s.vault, videos: [{ ...item, id: uid(), addedAt: Date.now() }, ...s.vault.videos] },
         })),
       removeVaultVideo: (id) =>
-        set((s) => ({ vault: { ...s.vault, videos: s.vault.videos.filter((v) => v.id !== id) } })),
+        set((s) => {
+          const item = s.vault.videos.find((v) => v.id === id);
+          if (item) deleteVaultFile(item.uri);
+          return { vault: { ...s.vault, videos: s.vault.videos.filter((v) => v.id !== id) } };
+        }),
 
       exportSnapshot: () => {
         const s = get();
@@ -392,7 +409,10 @@ export const useAppStore = create<AppState & AppActions>()(
         }
       },
 
-      resetAll: () => set({ ...initialState, hasHydrated: true }),
+      resetAll: () => {
+        wipeVaultDirectory();
+        set({ ...initialState, hasHydrated: true });
+      },
       setHasHydrated: (v) => set({ hasHydrated: v }),
     }),
     {
