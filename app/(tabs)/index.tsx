@@ -34,6 +34,7 @@ export default function HomeScreen() {
   const checkIns = useAppStore((s) => s.checkIns);
   const pendingMilestones = useAppStore((s) => s.pendingMilestones);
   const notifications = useAppStore((s) => s.notifications);
+  const activeUrgeId = useAppStore((s) => s.activeUrgeId);
   const startUrge = useAppStore((s) => s.startUrge);
   const addCheckIn = useAppStore((s) => s.addCheckIn);
   const evaluateMilestones = useAppStore((s) => s.evaluateMilestones);
@@ -85,7 +86,10 @@ export default function HomeScreen() {
 
   const onUrge = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
-    startUrge();
+    // An urge is already in progress (the floating widget is showing it) —
+    // resume it instead of starting a second one and orphaning the first,
+    // stuck at outcome "ongoing" forever.
+    if (!activeUrgeId) startUrge();
     router.push('/urge');
   };
 
