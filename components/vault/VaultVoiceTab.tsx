@@ -14,6 +14,7 @@ import Card from '../Card';
 import { useAppStore } from '../../lib/store';
 import { useT, useTheme } from '../../lib/hooks';
 import { Fonts } from '../../lib/fonts';
+import { persistVaultFile } from '../../lib/vaultFiles';
 
 function formatTime(sec: number) {
   if (!isFinite(sec) || sec < 0) return '0:00';
@@ -68,7 +69,8 @@ export default function VaultVoiceTab() {
   const stopRecording = async () => {
     await recorder.stop();
     if (recorder.uri) {
-      addVaultVoice({ uri: recorder.uri, durationSec: Math.round(recorderState.durationMillis / 1000) });
+      const uri = await persistVaultFile(recorder.uri, 'voice');
+      addVaultVoice({ uri, durationSec: Math.round(recorderState.durationMillis / 1000) });
     }
     await setAudioModeAsync({ allowsRecording: false });
   };

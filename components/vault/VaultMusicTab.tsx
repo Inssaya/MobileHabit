@@ -8,6 +8,7 @@ import { PrimaryButton } from '../Buttons';
 import { useAppStore } from '../../lib/store';
 import { useT, useTheme } from '../../lib/hooks';
 import { Fonts } from '../../lib/fonts';
+import { persistVaultFile } from '../../lib/vaultFiles';
 
 function formatTime(sec: number) {
   if (!isFinite(sec) || sec < 0) return '0:00';
@@ -50,9 +51,10 @@ export default function VaultMusicTab() {
   const pick = async () => {
     const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*', multiple: true });
     if (result.canceled || !result.assets) return;
-    result.assets.forEach((asset) => {
-      addVaultMusic({ uri: asset.uri, name: asset.name ?? 'Track' });
-    });
+    for (const asset of result.assets) {
+      const uri = await persistVaultFile(asset.uri, 'music', asset.name);
+      addVaultMusic({ uri, name: asset.name ?? 'Track' });
+    }
   };
 
   const playing = music.find((m) => m.id === nowPlaying);

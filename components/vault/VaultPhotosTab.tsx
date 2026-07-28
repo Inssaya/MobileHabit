@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '../../lib/store';
 import { useT, useTheme } from '../../lib/hooks';
 import { Fonts } from '../../lib/fonts';
+import { persistVaultFile } from '../../lib/vaultFiles';
 import { GhostButton, PrimaryButton } from '../Buttons';
 
 const GAP = 8;
@@ -21,7 +22,10 @@ export default function VaultPhotosTab() {
   const fromLibrary = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9, allowsMultipleSelection: true });
     if (result.canceled) return;
-    result.assets.forEach((a) => addVaultPhoto({ uri: a.uri }));
+    for (const a of result.assets) {
+      const uri = await persistVaultFile(a.uri, 'photos');
+      addVaultPhoto({ uri });
+    }
   };
 
   const capture = async () => {
@@ -29,7 +33,8 @@ export default function VaultPhotosTab() {
     if (!perm.granted) return;
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.9 });
     if (result.canceled) return;
-    result.assets.forEach((a) => addVaultPhoto({ uri: a.uri }));
+    const uri = await persistVaultFile(result.assets[0].uri, 'photos');
+    addVaultPhoto({ uri });
   };
 
   return (

@@ -7,6 +7,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useAppStore } from '../../lib/store';
 import { useT, useTheme } from '../../lib/hooks';
 import { Fonts } from '../../lib/fonts';
+import { persistVaultFile } from '../../lib/vaultFiles';
 import { GhostButton, PrimaryButton } from '../Buttons';
 import type { VaultVideo } from '../../lib/types';
 
@@ -47,7 +48,8 @@ export default function VaultVideoTab() {
     });
     if (result.canceled) return;
     const asset = result.assets[0];
-    addVaultVideo({ uri: asset.uri, kind });
+    const uri = await persistVaultFile(asset.uri, 'video');
+    addVaultVideo({ uri, kind });
   };
 
   const openItem = videos.find((v) => v.id === openId);
