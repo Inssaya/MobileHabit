@@ -58,6 +58,9 @@ export class AnthropicProvider implements AIProvider {
       // The key belongs to the user and is stored in their device keychain;
       // there is no server in this app to proxy through.
       dangerouslyAllowBrowser: true,
+      // The SDK default (10 min) would leave the chat's "Thinking..." spinner
+      // running for the length of a movie on a stalled connection.
+      timeout: 45000,
     });
   }
 

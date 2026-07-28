@@ -367,7 +367,10 @@ export const useAppStore = create<AppState & AppActions>()(
           set({
             lang: d.lang ?? 'ar',
             theme: d.theme ?? 'noor',
-            habit: d.habit ?? null,
+            // Backfill the same way `migrate` does — an older or hand-edited
+            // backup can have a habit with no `reasons` array, and every
+            // reader (Home, addReason/removeReason) assumes it's always there.
+            habit: d.habit ? { ...d.habit, reasons: Array.isArray(d.habit.reasons) ? d.habit.reasons : [] } : null,
             streakStartedAt: d.streakStartedAt ?? null,
             journeyStartedAt: d.journeyStartedAt ?? d.streakStartedAt ?? null,
             lifetimeCleanDaysBanked: d.lifetimeCleanDaysBanked ?? 0,

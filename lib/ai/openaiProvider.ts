@@ -1,6 +1,9 @@
 import { AI_TOOLS, type AITool } from './toolDefs';
 import { AIProviderError, type AgentTurn, type AIProvider, type ProviderReply, type ProviderToolCall } from './provider';
 
+/** A mid-craving chat that never resolves is worse than one that fails fast. */
+const REQUEST_TIMEOUT_MS = 45000;
+
 /**
  * Speaks the OpenAI Chat Completions wire format, which OpenRouter also
  * implements verbatim — one class covers both, the only difference is which
@@ -21,10 +24,16 @@ export class OpenAIProvider implements AIProvider {
   async send(system: string, turns: AgentTurn[]): Promise<ProviderReply> {
     const messages = [{ role: 'system', content: system }, ...turns.flatMap(toOpenAIMessages)];
 
+    // Without this, a stalled connection leaves the chat's "Thinking..."
+    // spinner running forever with no way for the user to recover.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
     let response: Response;
     try {
       response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.apiKey}`,
@@ -37,7 +46,10 @@ export class OpenAIProvider implements AIProvider {
         }),
       });
     } catch {
+      if (controller.signal.aborted) throw new AIProviderError('Request timed out.', 'network');
       throw new AIProviderError('Could not reach the API.', 'network');
+    } finally {
+      clearTimeout(timeout);
     }
 
     if (!response.ok) {

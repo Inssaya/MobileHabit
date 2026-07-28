@@ -57,8 +57,13 @@ export function analyzeUrges(urges: UrgeRecord[], sinceMs?: number, windowDays =
   });
 
   const dailyMap = new Map<string, { count: number; resisted: number; relapsed: number }>();
+  const today = new Date();
   for (let i = windowDays - 1; i >= 0; i--) {
-    dailyMap.set(dayKey(Date.now() - i * 86400000), { count: 0, resisted: 0, relapsed: 0 });
+    // Calendar-day subtraction, not `i * 86400000` — a fixed 24h offset skips
+    // or repeats a day around a DST transition, silently corrupting the map.
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dailyMap.set(dayKey(d), { count: 0, resisted: 0, relapsed: 0 });
   }
   scoped.forEach((u) => {
     const key = dayKey(u.startedAt);

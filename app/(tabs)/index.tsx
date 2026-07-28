@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -15,6 +15,8 @@ import { useTheme, useT, useLang } from '../../lib/hooks';
 import { Fonts } from '../../lib/fonts';
 import { rankForDays, nextRank, rankProgress } from '../../lib/ranks';
 import { todayKey } from '../../lib/dates';
+import { MILESTONES } from '../../lib/milestones';
+import { notifyMilestone } from '../../lib/notifications';
 import type { Mood } from '../../lib/types';
 
 export default function HomeScreen() {
@@ -31,6 +33,7 @@ export default function HomeScreen() {
   const resistedCount = useAppStore((s) => s.resistedCount);
   const checkIns = useAppStore((s) => s.checkIns);
   const pendingMilestones = useAppStore((s) => s.pendingMilestones);
+  const notifications = useAppStore((s) => s.notifications);
   const startUrge = useAppStore((s) => s.startUrge);
   const addCheckIn = useAppStore((s) => s.addCheckIn);
   const evaluateMilestones = useAppStore((s) => s.evaluateMilestones);
@@ -60,9 +63,22 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (pendingMilestones.length > 0 && celebrating.length === 0) {
-      setCelebrating(consumePendingMilestones());
+      const earned = consumePendingMilestones();
+      setCelebrating(earned);
+
+      // Milestones are only detected on Home mount (evaluateMilestones above),
+      // so this can't reach the user while the app is fully closed — but it's
+      // what makes the "congratulate on achievements" toggle in Settings do
+      // anything at all instead of being silently ignored.
+      if (Platform.OS !== 'web' && notifications.enabled && notifications.milestones) {
+        earned.forEach((key) => {
+          const m = MILESTONES.find((x) => x.key === key);
+          if (!m) return;
+          notifyMilestone(lang === 'ar' ? m.titleAr : m.titleEn, lang === 'ar' ? m.bodyAr : m.bodyEn, notifications).catch(() => {});
+        });
+      }
     }
-  }, [pendingMilestones, celebrating.length, consumePendingMilestones]);
+  }, [pendingMilestones, celebrating.length, consumePendingMilestones, notifications, lang]);
 
   const hour = new Date().getHours();
   const greeting = hour < 17 ? t('greetingMorning') : t('greetingEvening');
