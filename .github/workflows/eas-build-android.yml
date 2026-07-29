@@ -2,6 +2,13 @@ name: EAS Build Android (preview APK)
 
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - claude/mobilehabit-phone-testing-ro7y87
+    paths:
+      - .github/workflows/eas-build-android.yml
+      - eas.json
+      - app.json
 
 jobs:
   build:
