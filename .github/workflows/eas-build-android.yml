@@ -1,0 +1,58 @@
+name: EAS Build Android (preview APK)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install --global eas-cli
+
+      - name: Run EAS build and capture result
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build --platform android --profile preview --non-interactive --wait --json > eas-build-result.json
+          cat eas-build-result.json
+
+      - name: Download APK from build result
+        run: |
+          node -e "
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('eas-build-result.json', 'utf8'));
+            const build = Array.isArray(data) ? data[0] : data;
+            if (!build || build.status !== 'finished' || !build.artifacts || !build.artifacts.buildUrl) {
+              console.error('Build did not finish successfully:', JSON.stringify(build, null, 2));
+              process.exit(1);
+            }
+            fs.writeFileSync('apk_url.txt', build.artifacts.buildUrl);
+          "
+          curl -L -o app-preview.apk "$(cat apk_url.txt)"
+
+      - name: Create release with APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "preview-build-${{ github.run_number }}" \
+            app-preview.apk \
+            --title "MobileHabit preview APK (build ${{ github.run_number }})" \
+            --notes "Automated EAS preview build. Download app-preview.apk and install on your Android phone (enable 'install unknown apps' for your browser/files app)."
+
+      - name: Upload APK as workflow artifact (fallback)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-preview-apk
+          path: app-preview.apk

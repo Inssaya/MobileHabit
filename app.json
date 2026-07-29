@@ -70,6 +70,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "projectofsinifs-team",
+    "extra": {
+      "eas": {
+        "projectId": "a479bd1b-74af-4a11-97bb-a0d57a32686e"
+      }
     }
   }
 }
