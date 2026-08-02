@@ -400,7 +400,11 @@ export const useAppStore = create<AppState & AppActions>()(
             pendingMilestones: [],
             chatMessages: Array.isArray(d.chatMessages) ? d.chatMessages : [],
             notifications: { ...DEFAULT_NOTIFICATION_PREFS, ...(d.notifications ?? {}) },
-            activeUrgeId: null,
+            // A backup can carry an urge still mid-flow (outcome "ongoing") if it
+            // was exported before the user resolved it. Point activeUrgeId at it
+            // so the resume logic on Home/UrgeWidget picks it back up, instead of
+            // nulling it out and leaving the record stuck with no way to finish it.
+            activeUrgeId: (Array.isArray(d.urges) ? (d.urges as UrgeRecord[]) : []).find((u) => u.outcome === 'ongoing')?.id ?? null,
             onboarded: true,
           });
           return { ok: true };

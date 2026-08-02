@@ -11,9 +11,10 @@ function pad(n: number) {
 export function useElapsed(startedAt: number | null) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
+    if (!startedAt) return;
     const int = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(int);
-  }, []);
+  }, [startedAt]);
   if (!startedAt) return { days: 0, hours: 0, minutes: 0, seconds: 0, totalMs: 0 };
   const totalMs = Math.max(0, now - startedAt);
   const totalSec = Math.floor(totalMs / 1000);

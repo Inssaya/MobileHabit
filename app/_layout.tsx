@@ -4,10 +4,11 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 
 import { useAppFonts } from '../lib/fonts';
 import { useAppStore } from '../lib/store';
+import { useSessionStore } from '../lib/sessionStore';
 import { useTheme } from '../lib/hooks';
 import UrgeWidget from '../components/UrgeWidget';
 
@@ -15,10 +16,21 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootLayoutInner() {
   const theme = useTheme();
+  const lockVault = useSessionStore((s) => s.lockVault);
 
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(theme.bg).catch(() => {});
   }, [theme.bg]);
+
+  useEffect(() => {
+    // The vault PIN is a privacy gate for sensitive media, so it must not stay
+    // unlocked once the app leaves the foreground (someone else picking up the
+    // phone, or backgrounding it to switch apps).
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') lockVault();
+    });
+    return () => sub.remove();
+  }, [lockVault]);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }} onLayout={() => {}}>
